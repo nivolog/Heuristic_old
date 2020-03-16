@@ -7,7 +7,7 @@
 #include <stack>
 #include <algorithm>
 #include <typeinfo>
-
+#include <ctime>
 
 using namespace std;
 
@@ -36,15 +36,18 @@ public:
  void g_calc(NODE &predecessor){
 	g = predecessor.g + c(predecessor);
  }
-/*
- void h_calc(NODE &goal){                                                       //
-	 h = 1.1 * hypot(abs(x_coordinate - goal.x_coordinate), abs(y_coordinate - goal.y_coordinate));
- }
-*/
 
+ void h_calc(NODE &goal){                                                       //
+	 h = hypot(abs(x_coordinate - goal.x_coordinate), abs(y_coordinate - goal.y_coordinate));
+ }
+
+
+/*
  void h_calc(NODE &goal){                                                       //
 	 h = abs(x_coordinate - goal.x_coordinate) + abs(y_coordinate - goal.y_coordinate) + (sqrt(2) - 2)*fmin(abs(x_coordinate - goal.x_coordinate),abs(y_coordinate - goal.y_coordinate));
  }
+ */
+
  /*
  void h_calc(NODE &goal){                                                       //
    h = 0.8 * (abs(x_coordinate - goal.x_coordinate) + abs(y_coordinate - goal.y_coordinate));
@@ -163,8 +166,11 @@ deque <NODE> update_open(deque <NODE> &que, NODE &new_node, NODE &pred, NODE &n_
 
 
 int main(int argc, char **argv) {
+  time_t start, end;
+  time(&start);
+
   ifstream maze;                                                                //Text file with map
-  maze.open("/home/what_is_love/Lab/maps/7/map.txt");                                                         //Structure is:
+  maze.open("/home/what_is_love/Lab/maps/8/map.txt");                                                         //Structure is:
   int razmer1, razmer2;                                                         // - two numbers, defining size
   maze >> razmer1 >> razmer2;                                                   //
   NODE n_start, n_goal;                                                         // - cordinates of start and goal nodes
@@ -183,16 +189,17 @@ int main(int argc, char **argv) {
   deque  <NODE> CLOSED;
   stack  <NODE> PATH;
 
-
 	//HEURISTIC ALGHORITM
   int iteration = 0;
   OPEN.push_front(n_start);
   n_start.g = 0;
 
+  /*
   cout << "CLOSED FIRST:" << "  ";
   output(CLOSED);
   cout << "OPENED FIRST:" << "  ";
   output(OPEN);
+  */
 
   NODE s,n;
   vector <vector <NODE> >  neighbours (3, vector <NODE> (3));
@@ -211,18 +218,20 @@ int main(int argc, char **argv) {
       CLOSED.push_front(s);
       continue;
     }
-
+    /*
     cout << "CLOSED:  ";
     output(CLOSED);
     cout << "OPENED:  ";
     output(OPEN);
-
+    */
     CLOSED.push_front(s);
     neighbours = neighbours_check(s, neighbours, map, CLOSED);
+    /*
     cout << "Neighbours are: ";
     for (int i = 0; i < 3; ++i){
       output(neighbours[i]);
     }
+    */
 
 		for (int i = 0; i < 3; ++i) {
 			for (int j = 0; j < 3; ++j)	{
@@ -230,8 +239,8 @@ int main(int argc, char **argv) {
 
         if (!n.is_blocked){
           OPEN = update_open(OPEN, n, s, n_goal);
-          cout << "Open size;" << OPEN.size() * sizeof(NODE) << "\n";
-          cout << "Close size;" << CLOSED.size() * sizeof(NODE) << "\n";
+          //cout << "Open size;" << OPEN.size() * sizeof(NODE) << "\n";
+          //cout << "Close size;" << CLOSED.size() * sizeof(NODE) << "\n";
         }
       }
     }
@@ -269,12 +278,11 @@ int main(int argc, char **argv) {
 
 
   cout << "PATH DONE" << endl;
-  cout << iteration << endl;
-
-
+  cout << "total iterations:" << iteration << endl;
+  cout << "path length: " << PATH.size() << endl;
 
   ofstream path;
-  path.open("/home/what_is_love/Lab/maps/7/path.txt");
+  path.open("/home/what_is_love/Lab/maps/8/path.txt");
   //path << "x y\n";
   int x_path, y_path;
   int range = PATH.size();
@@ -286,6 +294,9 @@ int main(int argc, char **argv) {
   }
   path.close();
 
+
+  time(&end);
+  cout << "time is" << difftime(end, start) << endl;
 
 	return 0;
 };
