@@ -9,25 +9,32 @@
 #include <unordered_set>
 #include <typeinfo>
 #include <ctime>
+#include <list>
 
 using namespace std;
 
 int razmer1, razmer2;
 double e = 1.0;
+int chosen_one = 1;
+// EUCLID == 1
+// DIAG   == 2
+// CHEB   == 3
 
-class NODE {                                                                    //Main class in programm
+
+class NODE {                                                                    //Main class
 private:
 	/* data */
 
 public:
  int x_coordinate;                                                              //X position of NODE
  int y_coordinate;                                                              //Y position of NODE
- bool is_blocked;                                                               //1 if NODE is blocked
+ bool is_blocked;                                                               //1 if NODE is blocked - probably useless
  double g;                                                                      //distance to the start NODE
  double h;                                                                      //heuristic distance to the goal NODE
  double f;                                                                      //summ of g and h
  int id;
- NODE();                                                                        //constructor
+ NODE();                                                                        //constructors
+ NODE(int x, int y);
  NODE *PRED;                                                                    //link to the predecessor
 
 
@@ -36,7 +43,7 @@ public:
  void id_c(void){
    id = y_coordinate*razmer1 + x_coordinate;
  }
-
+//compute cost
  double c(NODE &predecessor){                                                   //distance between two nodes
 	int dx = x_coordinate - predecessor.x_coordinate;
 	int dy = y_coordinate - predecessor.y_coordinate;
@@ -48,21 +55,23 @@ public:
  void g_calc(NODE &predecessor){
 	g = predecessor.g + c(predecessor);
  }
-/*
- void h_calc(NODE &goal){                                                       //
-	 h = e * hypot(abs(x_coordinate - goal.x_coordinate), abs(y_coordinate - goal.y_coordinate));
- }
- */
 
-/*
- void h_calc(NODE &goal){                                                       //
-	 h = abs(x_coordinate - goal.x_coordinate) + abs(y_coordinate - goal.y_coordinate) + (sqrt(2) - 2)*fmin(abs(x_coordinate - goal.x_coordinate),abs(y_coordinate - goal.y_coordinate));
-   h *= e;
- }
- */
-
- void h_calc(NODE &goal){                                                       //
-   h = e * fmax(abs(x_coordinate - goal.x_coordinate), abs(y_coordinate - goal.y_coordinate));
+ void h_calc(NODE &goal){
+   switch (chosen_one){
+      case 1:
+        h = e * hypot(abs(x_coordinate - goal.x_coordinate), abs(y_coordinate - goal.y_coordinate));
+        break;
+      case 2:
+        h = abs(x_coordinate - goal.x_coordinate) + abs(y_coordinate - goal.y_coordinate) + (sqrt(2) - 2)*fmin(abs(x_coordinate - goal.x_coordinate),abs(y_coordinate - goal.y_coordinate));
+        h *= e;
+        break;
+      case 3:
+        h = e * fmax(abs(x_coordinate - goal.x_coordinate), abs(y_coordinate - goal.y_coordinate));
+        break;
+      default:
+        h = 0;
+        break;
+   }
  }
 
 
@@ -78,8 +87,19 @@ public:
 
 NODE::NODE(void){                                                               //NODE constructor
   is_blocked = 0;
+  g = 0;
   //PRED = nullptr;
 }
+
+NODE::NODE(int x, int y){                                                       //NODE constructor
+  is_blocked = 0;
+  x_coordinate = x;
+  y_coordinate = y;
+  id_c();
+  //PRED = nullptr;
+}
+
+NODE n_start, n_goal;
 
 struct comparator{
   using is_transparent = int;
@@ -129,40 +149,35 @@ void output(unordered_map <int, class NODE> &um){
 }
 
 
-//void?
+
 //get successors
-vector < vector <NODE> > neighbours_check(NODE &n, vector <vector <NODE> > &neighbours , vector <vector <bool> > &map, unordered_map <int, class NODE> &CLOSED){
-  int x = n.x_coordinate;
-  int y = n.y_coordinate;
-  //list
-  for (int i = 0; i < 3; ++i){
-    for(int j = 0; j < 3; ++j){
-      neighbours[i][j].x_coordinate = x-1+i;
-      neighbours[i][j].y_coordinate = y-1+j;
-      neighbours[i][j].id_c();
-      neighbours[i][j].is_blocked = map[x-1+i][y-1+j];
-    }
-  }
-  /*
-  for (int i = 0; i < 3; ++i){
-    for(int j = 0; j < 3; ++j){
-      cout << "(" <<neighbours[i][j].x_coordinate << " " << neighbours[i][j].y_coordinate << ")  ";
-    }
-    cout << endl;
-  }*/
+list <NODE> get_successors (NODE *current, vector <vector <bool> > &map, unordered_map <int, class NODE> &CLOSED){
+  int x = (*current).x_coordinate;
+  int y = (*current).y_coordinate;
+
+  list <NODE> successors;
+  NODE tmp;
 
   for (int i = 0; i < 3; ++i){
     for(int j = 0; j < 3; ++j){
-      if(CLOSED.find((neighbours[i][j]).id) != CLOSED.end()) neighbours[i][j].is_blocked = 1;
-      //if(CLOSED.find((neighbours[i][j]).id) != CLOSED.end()) cout << "found one! this dude is: (" << neighbours[i][j].x_coordinate << "  " << neighbours[i][j].y_coordinate << ")" << endl;
-
+      if (!(map[x-1+i][y-1+j])){
+        tmp.x_coordinate = x-1+i;
+        tmp.y_coordinate = y-1+j;
+        tmp.id_c();
+        //add parent
+        if(CLOSED.find(tmp.id) == CLOSED.end()) {
+          tmp.h_calc(n_goal);
+          tmp.g_calc(*current);
+          tmp.f_calc();
+          successors.push_back(tmp);
+        }
+      }
     }
   }
-  return neighbours;
+  return successors;
 }
-
-
-set <class NODE, comparator> update_open(set <class NODE, comparator> &st_open, unordered_set<int> &open_id, NODE &new_node, NODE &n_goal, NODE* pred){
+//void
+set <class NODE, comparator> update_open(set <class NODE, comparator> &st_open, unordered_set<int> &open_id, NODE &new_node, NODE* pred){
   auto open_iterator = st_open.begin();
 
   auto is_inside_open = open_id.find(new_node.id);
@@ -175,21 +190,17 @@ set <class NODE, comparator> update_open(set <class NODE, comparator> &st_open, 
 
   if(open_iterator != st_open.end()){
     NODE tmp = *open_iterator;
-    cout << "ouch see this one before: (" << tmp.x_coordinate << " " << tmp.y_coordinate << ")" << endl;
     st_open.erase(open_iterator);
 
     if(tmp.PRED->g > (*pred).g){
       tmp.PRED = pred;
     }
-    tmp.check_g((*pred).g + tmp.c(*pred));
+    tmp.check_g(new_node.g);
     st_open.insert(tmp);
   }else{
-    //cout << "umm this is yammy new one: (" << new_node.x_coordinate << " " << new_node.y_coordinate << ")" << endl;
+    //remove new
     new_node.PRED = new NODE;
     new_node.PRED = pred;
-    new_node.g_calc(*pred);
-    new_node.h_calc(n_goal);
-    new_node.f_calc();
     st_open.insert(new_node);
   }
 
@@ -203,12 +214,12 @@ int main(int argc, char **argv) {
   time(&start);
 
   ifstream maze;                                                                //Text file with map
-  maze.open("/home/what_is_love/Lab/maps/8/map.txt");                           //Structure is:
-  maze >> ::razmer1 >> ::razmer2;                                               //- two numbers, defining size
-  NODE n_start, n_goal;                                                         // - cordinates of start and goal nodes
-  maze >> n_start.x_coordinate >> n_start.y_coordinate >> n_goal.x_coordinate >> n_goal.y_coordinate;
-  n_start.id_c(); n_start.g = 0;
-  n_goal.id_c(); n_goal.h = 0;
+  maze.open("/home/what_is_love/Lab/maps/8/map.txt");
+  maze >> ::razmer1 >> ::razmer2;
+  maze >> ::n_start.x_coordinate >> ::n_start.y_coordinate >> ::n_goal.x_coordinate >> ::n_goal.y_coordinate;
+
+  ::n_start.id_c(); ::n_start.g = 0;
+  ::n_goal.id_c(); ::n_goal.h = 0;
 
   vector <vector <bool> > map (razmer1, vector <bool> (razmer2));               //Initialization of map
   int x, y, b;                                                                  //
@@ -226,14 +237,13 @@ int main(int argc, char **argv) {
   unordered_set <int> OPEN_ID;
 
   unordered_map <int, class NODE> CLOSED;
-  unordered_map <int, class NODE>::iterator closed_start;
   unordered_map <int, class NODE>::iterator address_of_goal_node;
 
   NODE* pred;
 
   stack  <NODE> PATH;
 
-  //HEURISTIC ALGHORITM
+  //HEURISTIC ALGORITHM
   int iteration = 0;
 
   OPEN.insert(n_start);
@@ -245,21 +255,13 @@ int main(int argc, char **argv) {
   output(OPEN);
 
   NODE s,n;
-  vector <vector <NODE> >  neighbours (3, vector <NODE> (3));
+  list <NODE> successors;
   bool goal_is_not_reached = 1;
   cout << "starting" << endl;
 
   while (goal_is_not_reached) {
-    iteration++;
-    open_start = OPEN.begin();
-    s = *open_start;
-    OPEN.erase(open_start);
 
-
-    cout << "Curently woking on :  " << s.x_coordinate << "  " << s.y_coordinate << endl;
-
-    //найден ли путь?
-    if (equivalent(s, n_goal)) {
+    if (equivalent(s, n_goal) || (OPEN.size() == 0)) {
       iteration++;
       goal_is_not_reached = 0;
       CLOSED.insert(make_pair(s.id, s));
@@ -267,33 +269,29 @@ int main(int argc, char **argv) {
       continue;
     }
 
-    /*
-    cout << "CLOSED:  ";
-    output(CLOSED);
-    cout << "OPENED:  ";
-    output(OPEN);
-    */
+    iteration++;
+    open_start = OPEN.begin();
+    s = *open_start;
+    OPEN.erase(open_start);
 
+    cout << "Curently woking on :  " << s.x_coordinate << "  " << s.y_coordinate << endl;
     CLOSED.insert(make_pair(s.id, s));
-
-    neighbours = neighbours_check(s, neighbours, map, CLOSED);
     pred = &(CLOSED.find(s.id)->second);
 
-    for (int i = 0; i < 3; ++i) {
-      for (int j = 0; j < 3; ++j)	{
-        n = neighbours[i][j];
-        OPEN_ID.insert(n.id);
-        if (!n.is_blocked){
-          OPEN = update_open(OPEN, OPEN_ID, n, n_goal, pred);
-          //cout << "Open size;" << OPEN.size() * sizeof(NODE) << "\n";
-          //cout << "Close size;" << CLOSED.size() * sizeof(NODE) << "\n";
-        }
-      }
+
+    successors = get_successors(pred, map, CLOSED);
+    for (auto suc_it = successors.begin(); suc_it != successors.end(); ++suc_it){
+      //cur_node
+      n = *suc_it;
+      OPEN_ID.insert(n.id);
+      OPEN = update_open(OPEN, OPEN_ID, n, pred);
     }
+
   }
+  //END OF ALGORYTHM
+
 
   cout << "total iterations: " << iteration << endl << endl;
-
   cout << "total closed: ";
   output(CLOSED);
   cout << endl;
@@ -306,7 +304,7 @@ int main(int argc, char **argv) {
   PATH.push(p);
   bool path_not_complite = 1;
 
-  //TODO: remove PATH stack, make alghoritm write path directly to the file
+  //TODO: remove PATH stack, make algorithm write path directly to the file
 
   while(path_not_complite){
     p_next = *(p.PRED);
