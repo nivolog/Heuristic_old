@@ -1,0 +1,90 @@
+
+#include <iostream>
+#include <cmath>
+#include <fstream>
+#include <stack>
+#include <vector>
+#include <set>
+#include <unordered_map>
+#include <unordered_set>
+#include <typeinfo>
+#include <ctime>
+#include <list>
+#include <chrono>
+
+using namespace std;
+
+int razmer1, razmer2;
+double e = 1.0;
+int chosen_one = 3;
+// EUCLID == 1
+// DIAG   == 2
+// CHEB   == 3
+
+
+
+NODE n_start, n_goal;
+
+
+
+
+
+
+
+int main(int argc, char **argv) {
+
+  maze >> ::n_start.x_coordinate >> ::n_start.y_coordinate >> ::n_goal.x_coordinate >> ::n_goal.y_coordinate;
+
+  ::n_start.id_c(); ::n_start.g = 0;
+  ::n_goal.id_c(); ::n_goal.h = 0;
+
+
+
+
+
+  NODE* pred;
+
+
+
+  //HEURISTIC ALGORITHM
+  int iteration = 0;
+
+  OPEN.insert(n_start);
+
+
+  cout << "CLOSED FIRST:" << "  ";
+  output(CLOSED);
+  cout << "OPENED FIRST:" << "  ";
+  output(OPEN);
+
+
+
+
+//log start
+  chrono::steady_clock::time_point start = chrono::steady_clock::now();
+
+
+  //END OF ALGORYTHM
+  chrono::steady_clock::time_point end = chrono::steady_clock::now();
+
+  cout << "total iterations: " << iteration << endl << endl;
+//log end
+
+
+
+
+
+  cout << "PATH DONE" << endl;
+  cout << "total iterations:" << iteration << endl;
+  cout << "path length: " << PATH.size() << endl;
+
+  //time(&end);
+  //cout << "time is" << difftime(end, start) << endl;
+
+
+  cout << "Calculating took "
+              << chrono::duration_cast<chrono::milliseconds>(end - start).count()
+              << "ms.\n";
+
+	return 0;
+};
